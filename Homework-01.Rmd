@@ -12,9 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 Using the RMarkdown/knitr/github mechanism, implement the following tasks by extending the example R script mixture-data-lin-knn.R:
 [x] Paste the code from the mixture-data-lin-knn.R file into the homework template Knitr document.
 [x] Read the help file for R's built-in linear regression function lm
-[ ] Re-write the functions fit_lc and predict_lc using lm, and the associated predict method for lm objects.
-[ ] Consider making the linear classifier more flexible, by adding squared terms for x1 and x2 to the linear model
-[ ] Describe how this more flexible model affects the bias-variance tradeoff
+[x] Re-write the functions fit_lc and predict_lc using lm, and the associated predict method for lm objects.
+[x] Consider making the linear classifier more flexible, by adding squared terms for x1 and x2 to the linear model
+[x] Describe how this more flexible model affects the bias-variance tradeoff
 
 ```{r libraries}
 library("class")
