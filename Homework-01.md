@@ -1,39 +1,49 @@
----
-title: "Homework 1"
-author: "Jordan Nieusma"
-date: "January 19, 2023"
-output: github_document
----
+Homework 1
+================
+Jordan Nieusma
+January 19, 2023
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+Using the RMarkdown/knitr/github mechanism, implement the following
+tasks by extending the example R script mixture-data-lin-knn.R:
 
-Using the RMarkdown/knitr/github mechanism, implement the following tasks by extending the example R script mixture-data-lin-knn.R:
+\[x\] Paste the code from the mixture-data-lin-knn.R file into the
+homework template Knitr document.
 
-[x] Paste the code from the mixture-data-lin-knn.R file into the homework template Knitr document.
+\[x\] Read the help file for R’s built-in linear regression function lm
 
-[x] Read the help file for R's built-in linear regression function lm
+\[x\] Re-write the functions fit_lc and predict_lc using lm, and the
+associated predict method for lm objects.
 
-[x] Re-write the functions fit_lc and predict_lc using lm, and the associated predict method for lm objects.
+\[x\] Consider making the linear classifier more flexible, by adding
+squared terms for x1 and x2 to the linear model
 
-[x] Consider making the linear classifier more flexible, by adding squared terms for x1 and x2 to the linear model
+\[x\] Describe how this more flexible model affects the bias-variance
+tradeoff
 
-[x] Describe how this more flexible model affects the bias-variance tradeoff
-
-```{r libraries}
+``` r
 library("class")
 library("dplyr")
 ```
 
-```{r load-data}
+    ## 
+    ## Attaching package: 'dplyr'
+
+    ## The following objects are masked from 'package:stats':
+    ## 
+    ##     filter, lag
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     intersect, setdiff, setequal, union
+
+``` r
 ## load binary classification example data from author website 
 ## 'ElemStatLearn' package no longer available
 load(url('https://web.stanford.edu/~hastie/ElemStatLearn/datasets/ESL.mixture.rda'))
 dat <- ESL.mixture
 ```
 
-```{r}
+``` r
 # plot data points and decision boundary
 plot_mix_data <- function(dat, datboot=NULL) {
   if(!is.null(datboot)) {
@@ -54,9 +64,11 @@ plot_mix_data <- function(dat, datboot=NULL) {
 plot_mix_data(dat)
 ```
 
+![](Homework-01_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+
 ## Re-write the functions fit_lc and predict_lc using lm and the associated predict method for lm objects:
 
-```{r}
+``` r
 # recall that x = input, y = quantitative output
 ## fit linear classifier
 
@@ -88,8 +100,11 @@ lc_pred <- matrix(lc_pred, length(dat$px1), length(dat$px2))
 contour(lc_pred,
       xlab=expression(x[1]),
       ylab=expression(x[2]))
+```
 
+![](Homework-01_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
+``` r
 ## find the contours in 2D space such that lc_pred == 0.5
 lc_cont <- contourLines(dat$px1, dat$px2, lc_pred, levels=0.5)
 
@@ -98,9 +113,14 @@ plot_mix_data(dat)
 sapply(lc_cont, lines)
 ```
 
+![](Homework-01_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
+
+    ## [[1]]
+    ## NULL
+
 ## Consider making the linear classifier more flexible by adding squared terms for x1 and x2 to the linear model:
 
-```{r}
+``` r
 # Modified fit_lc to include squared x1 and x2:
 fit_lc <- function(y, x1, x2) {
   beta <- lm(y ~ x1 + x2 + I(x1^2) + I(x2^2)) 
@@ -129,8 +149,11 @@ lc_pred <- matrix(lc_pred, length(dat$px1), length(dat$px2))
 contour(lc_pred,
       xlab=expression(x[1]),
       ylab=expression(x[2]))
+```
 
+![](Homework-01_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
+``` r
 ## find the contours in 2D space such that lc_pred == 0.5
 lc_cont <- contourLines(dat$px1, dat$px2, lc_pred, levels=0.5)
 
@@ -139,10 +162,23 @@ plot_mix_data(dat)
 sapply(lc_cont, lines)
 ```
 
+![](Homework-01_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
+
+    ## [[1]]
+    ## NULL
+
 ## Describe how this more flexible model affects the bias-variance tradeoff:
 
-Variance refers to the amount by which the predicted values would change if estimated using a different training data set. Ideally, these estimates should not have variance between training data sets; a method with high variance means that small changes in the training data can yield large changes in the predicted values.
+Variance refers to the amount by which the predicted values would change
+if estimated using a different training data set. Ideally, these
+estimates should not have variance between training data sets; a method
+with high variance means that small changes in the training data can
+yield large changes in the predicted values.
 
-Bias refers to the error that is introduced approximating a real-life problem as a statistical model, since a statistical model inherently is a simplification of the real-life problem.
+Bias refers to the error that is introduced approximating a real-life
+problem as a statistical model, since a statistical model inherently is
+a simplification of the real-life problem.
 
-In general, the higher the flexibility of a model, the more strongly variance and bias are inversely related (as variance increases, bias will decrease and vice versa).  
+In general, the higher the flexibility of a model, the more strongly
+variance and bias are inversely related (as variance increases, bias
+will decrease and vice versa).
