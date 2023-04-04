@@ -1,0 +1,96 @@
+---
+title: "HW 5"
+author: "Jordan Nieusma"
+date: "2023-03-30"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Set up the notebook 
+
+```{r set-up}
+library(randomForest)
+library(caret)
+
+url_train <- "https://hastie.su.domains/ElemStatLearn/datasets/vowel.train"
+url_test <- "https://hastie.su.domains/ElemStatLearn/datasets/vowel.test"
+
+train <- read.csv(url_train, row.names = 1)
+y_train <- train$y
+
+test <- read.csv(url_test, row.names = 1)
+y_test <- test$y
+```
+
+## Goal: Understand and implement a random forest classifier.
+
+## Task #1: 
+Using the “vowel.train” data, develop a random forest (e.g., using the "randomForest" package) for the vowel data, using all of the 11 features and using the default values of the tuning parameters.
+
+```{r t1}
+rf_default <- randomForest(y ~ ., data=train)
+rf_default
+```
+
+## Task #2: 
+
+Use 5-fold CV to tune the number of variables randomly sampled as candidates at each split if using random forest, or the ensemble size if using gradient boosting.
+
+```{r t2}
+set.seed(1)
+
+# Define seq of mtry values
+mtry_values <- seq(1, ncol(train) - 1)
+
+# Create empty vector to store the cross-validation error rates
+cv_error_rates <- rep(0, length(mtry_values))
+
+# Perform 5-fold cross validation for each value of mtry
+for (i in 1:length(mtry_values)) {
+  cv_error <- rep(0, 5) # Create an empty vector to store the CV error rates
+  for (j in 1:5) {
+    # Fit the model on the training set and predict on the validation set
+    model <- randomForest(y ~ ., data=train, mtry=mtry_values[i])
+    pred <- predict(model, newdata=test)
+    
+    # Compute the CV error rate
+    cv_error[j] <- mean(pred != y_test)
+  }
+  # Compute the average CV error rate for this value of mtry
+  cv_error_rates[i] <- mean(cv_error)
+}
+
+# Find the best value of mtry
+best_mtry <- mtry_values[which.min(cv_error_rates)]
+
+# Fit the final model with the best value of mtry
+final_model <- randomForest(y ~ ., data=train, mtry=best_mtry)
+
+# Print the final model and the CV error rates
+print(final_model)
+print(cv_error_rates)
+print(best_mtry)
+```
+
+
+## Task #3: 
+
+With the tuned model, make predictions using the majority vote method, and compute the misclassification rate using the ‘vowel.test’ data.
+
+```{r t3}
+rf_tuned <- randomForest(y ~ ., data=train, mtry=10)
+
+test_inputs <- test[, c(2:length(names(test)))]
+test_targets <- test[, c(1)]
+
+rf_pred <- predict(rf_tuned, newdata=test_inputs, type="response")
+
+results <- table(rf_pred, test_targets)
+print(results)
+```
+```
+
