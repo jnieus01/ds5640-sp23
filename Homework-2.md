@@ -6,6 +6,7 @@ January 19, 2023
 ## Setup:
 
 ``` r
+library(qrnn)
 library(dplyr)
 ```
 
@@ -21,18 +22,43 @@ library(dplyr)
     ##     intersect, setdiff, setequal, union
 
 ``` r
-## load prostate data
-prostate <- 
+dat <- 
   read.table(url(
     'https://web.stanford.edu/~hastie/ElemStatLearn/datasets/prostate.data'))
+# subset to training examples
+dat_train <- subset(dat, train==TRUE)
 ```
 
-``` r
-## subset to training examples
-prostate_train <- subset(prostate, train==TRUE)
+## Write code that implements L2, L1, and tilted absolute loss functions
 
-## plot lcavol vs lpsa
-plot_psa_data <- function(dat=prostate_train) {
+``` r
+# L2 loss function
+L2_loss <- function(y, yhat)
+  (y-yhat)^2
+
+# L1
+L1_loss <- function(y, yhat) {
+  mean(abs(y - yhat))
+}
+
+# Tilted loss, tau=0.25
+tilt75_loss <- function(y, yhat, tau) {
+  qrnn::tilted.abs(y-yhat, tau=0.25)
+}
+
+# Tilted loss, tau=0.75
+tilt25_loss <- function(y, yhat)
+  qrnn::tilted.abs(y-yhat, tau = 0.75)
+```
+
+## Plot lpsa (x-axis) versus lcavol (y-axis).
+
+``` r
+# Create a data frame for plotting actual values
+df <- data.frame(x=dat$lpsa, y=dat$lcavol)
+
+# Plot actuals (lpsa and lcavol)
+plot_psa_data <- function(dat=dat_train) {
   plot(dat$lpsa, dat$lcavol,
        xlab="log Prostate Screening Antigen (psa)",
        ylab="log Cancer Volume (lcavol)",
@@ -41,154 +67,127 @@ plot_psa_data <- function(dat=prostate_train) {
 plot_psa_data()
 ```
 
-![](Homework-2_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+![](Homework-2_files/figure-gfm/plot-actuals-1.png)<!-- -->
+
+## Add and label the linear model predictors associated with L2 loss, L1 loss, and tilted absolute value loss for tau = 0.25 and 0.75.
 
 ``` r
-############################
-## regular linear regression
-############################
-
-## L2 loss function
-L2_loss <- function(y, yhat)
-  (y-yhat)^2
-
-## fit simple linear model using numerical optimization
-fit_lin <- function(y, x, loss=L2_loss, beta_init = c(-0.51, 0.75)) {
+# Write functions to fit and predict on the training data
+# Fit
+fit_lin <- function(y, x, loss, beta_init = c(-0.51, 0.75)) {
   err <- function(beta)
-    mean(loss(y,  beta[1] + beta[2]*x))
+    mean(loss(y, beta[1] + beta[2]*x))
+  beta <- optim(par=beta_init, fn=err)
+  return(beta)
+}
+
+# Predict
+predict_lin <- function(x, beta)
+  beta[1] + beta[2]*x
+
+# Compute predictions for a grid of inputs
+x_grid <- seq(min(dat_train$lpsa),
+              max(dat_train$lpsa),
+              length.out=100)
+```
+
+``` r
+# Fit and predict using each loss fn
+# L1
+lin_beta_L1 <- fit_lin(y=dat_train$lcavol, x=dat_train$lpsa, loss=L1_loss)
+lin_pred_L1 <- predict_lin(x=x_grid, beta=lin_beta_L1$par)
+
+# L2
+lin_beta_L2 <- fit_lin(y=dat_train$lcavol, x=dat_train$lpsa, loss=L2_loss)
+lin_pred_L2 <- predict_lin(x=x_grid, beta=lin_beta_L2$par)
+
+# Abs tilted loss
+# tau = 0.25
+lin_beta_tilt25 <- fit_lin(y=dat_train$lcavol, x=dat_train$lpsa, loss=tilt25_loss)
+lin_pred_tilt25 <- predict_lin(x=x_grid, beta=lin_beta_tilt25$par)
+
+# tau = 0.75
+lin_beta_tilt75 <- fit_lin(y=dat_train$lcavol, x=dat_train$lpsa, loss=tilt75_loss)
+lin_pred_tilt75 <- predict_lin(x=x_grid, beta=lin_beta_tilt75$par)
+
+
+# Add predictions to plot
+plot_psa_data()
+lines(x=x_grid, y=lin_pred_L1, col='blue', lwd=2, lty=1)
+lines(x=x_grid, y=lin_pred_L2, col='pink', lwd=2, lty=1)
+lines(x=x_grid, y=lin_pred_tilt25, col='purple', lwd=2, lty=1)
+lines(x=x_grid, y=lin_pred_tilt75, col='red', lwd=2, lty=1)
+
+legend(-0.5, 4, legend=c("L1 Loss", "L2 Loss", "Tilted Abs Loss (tau=0.25)", "Tilted Abs Loss (tau=0.75)"),
+                         col=c("darkgreen", "pink", "purple", "red"),lty=c(1,1,1,1), cex=0.8)
+```
+
+![](Homework-2_files/figure-gfm/plot-lin-preds-1.png)<!-- -->
+
+## Write functions to fit and predict from a simple nonlinear model with three parameters defined by ‘beta\[1\] + beta\[2\]*exp(-beta\[3\]*x)’.
+
+``` r
+# Non-linear model
+fit_nonlin <- function(y, x, loss=L2_loss, beta_init = c(-1.0, 0.0, -0.3 )) {
+  err <- function(beta)
+    mean(loss(y,  beta[1] + beta[2]*exp(-beta[3]*x)))
   beta <- optim(par = beta_init, fn = err)
   return(beta)
 }
 
-## make predictions from linear model
-predict_lin <- function(x, beta)
-  beta[1] + beta[2]*x
+predict_nonlin <- function(x, beta)
+  beta[1] + beta[2]*exp(-beta[3]*x)
 
-## fit linear model
-lin_beta <- fit_lin(y=prostate_train$lcavol,
-                    x=prostate_train$lpsa,
+nonlin_beta <- fit_nonlin(y=dat_train$lcavol,
+                    x=dat_train$lpsa,
                     loss=L2_loss)
 
-## compute predictions for a grid of inputs
-x_grid <- seq(min(prostate_train$lpsa),
-              max(prostate_train$lpsa),
-              length.out=100)
-lin_pred <- predict_lin(x=x_grid, beta=lin_beta$par)
+preds_nonlin <- predict_nonlin(x=x_grid, beta=nonlin_beta$par)
+```
 
-## plot data
+## Create a figure that shows lpsa (x-axis) versus lcavol (y-axis). Add and label the nonlinear model predictors associated with L2 loss, L1 loss, and tilted absolute value loss for tau = 0.25 and 0.75.
+
+``` r
+# L2 loss 
+nlin_beta_L2 <- fit_nonlin(y=dat_train$lcavol,
+                x=dat_train$lpsa,
+                loss=L2_loss)
+
+nlin_pred_L2 <- predict_nonlin(x=x_grid, beta=nlin_beta_L2$par)
+
+# L1 loss 
+nlin_beta_L1 <- fit_nonlin(y=dat_train$lcavol,
+                x=dat_train$lpsa,
+                loss=L1_loss)
+
+nlin_pred_L1 <- predict_nonlin(x=x_grid, beta=nlin_beta_L1$par)
+
+# tilted tau=0.25
+nlin_beta_tilt25 <- fit_nonlin(y=dat_train$lcavol,
+                    x=dat_train$lpsa,
+                    loss=tilt25_loss)
+
+nlin_pred_tilt25 <- predict_nonlin(x=x_grid, beta=nlin_beta_tilt25$par)
+
+# fit linear model with tilted tau=0.75
+
+nlin_beta_tilt75 <- fit_nonlin(y=dat_train$lcavol,
+                x=dat_train$lpsa,
+                loss=tilt75_loss)
+
+nlin_pred_tilt75 <- predict_nonlin(x=x_grid, beta=nlin_beta_tilt75$par)
+```
+
+``` r
 plot_psa_data()
 
-## plot predictions
-lines(x=x_grid, y=lin_pred, col='darkgreen', lwd=2)
+lines(x=x_grid, y=nlin_pred_L1, col='blue', lwd=1)
+lines(x=x_grid, y=nlin_pred_L2, col='pink', lwd=2, lty=1)
+lines(x=x_grid, y=nlin_pred_tilt25, col='purple', lwd=2, lty=1)
+lines(x=x_grid, y=nlin_pred_tilt75, col='red', lwd=2, lty=1)
 
-## do the same thing with 'lm'
-lin_fit_lm <- lm(lcavol ~ lpsa, data=prostate_train)
-
-## make predictins using 'lm' object
-lin_pred_lm <- predict(lin_fit_lm, data.frame(lpsa=x_grid))
-
-## plot predictions from 'lm'
-lines(x=x_grid, y=lin_pred_lm, col='pink', lty=2, lwd=2)
+legend(-0.5, 3.9, legend=c("L1 Loss", "L2 Loss", "Tilted Abs Loss (tau=0.25)", "Tilted Abs Loss (tau=0.75)"),
+                         col=c("blue", "pink", "purple", "red"), lty=c(1,1,1,1), cex=0.8)
 ```
 
-![](Homework-2_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
-
-## Instructions:
-
-### 1) Write functions that implement the L1 loss and tilted absolute loss functions.
-
-### 2) Create a figure that shows lpsa (x-axis) versus lcavol (y-axis). Add and label (using the ‘legend’ function) the linear model predictors associated with L2 loss (squared error loss), L1 loss (absolute error loss), and tilted absolute value loss for tau = 0.25 and 0.75.
-
-``` r
-## 1) custom loss functions implementing L1 loss and tilted abs loss
-L1_loss <- function(y, yhat)
-  qrnn::tilted.abs(y-yhat, tau = 0.5)
-
-L1_tilted_loss_25 <- function(y, yhat, tau=0.25)
-  qrnn::tilted.abs(y-yhat, tau)
-
-L1_tilted_loss_75 <- function(y, yhat, tau=0.75)
-  qrnn::tilted.abs(y-yhat, tau)
-```
-
-``` r
-## 2)
-## plot L1 loss function
-err_grd <- seq(-1,1,length.out=200)
-plot(err_grd, L1_loss(err_grd,0), type='l',
-     xlab='y-yhat', ylab='custom loss')
-```
-
-![](Homework-2_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
-
-``` r
-## fit linear model with custom loss (L1)
-lin_beta_custom <- fit_lin(y=prostate_train$lcavol,
-                    x=prostate_train$lpsa,
-                    loss=L1_loss)
-
-lin_pred_custom <- predict_lin(x=x_grid, beta=lin_beta_custom$par)
-
-## plot data
-plot_psa_data()
-
-## plot predictions from L2 loss
-lines(x=x_grid, y=lin_pred, col='darkgreen', lwd=2)
-
-## plot predictions from L1 loss
-lines(x=x_grid, y=lin_pred_custom, col='pink', lwd=2, lty=2)
-```
-
-![](Homework-2_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
-
-``` r
-##############################
-## plot L1_tilted loss function where tau = 0.25 & 0.75
-err_grd <- seq(-1,1,length.out=200)
-plot(err_grd, L1_tilted_loss_25(err_grd,0,tau=0.25), type='l',
-     xlab='y-yhat', ylab='Tilted abs loss (tau = 0.25)')
-```
-
-![](Homework-2_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->
-
-``` r
-err_grd <- seq(-1,1,length.out=200)
-plot(err_grd, L1_tilted_loss_75(err_grd,0,tau=0.75), type='l',
-     xlab='y-yhat', ylab='Tilted abs loss (tau = 0.75)')
-```
-
-![](Homework-2_files/figure-gfm/unnamed-chunk-4-4.png)<!-- -->
-
-``` r
-## fit linear model with custom loss (L1)
-lin_beta_custom_25 <- fit_lin(y=prostate_train$lcavol,
-                    x=prostate_train$lpsa,
-                    loss=L1_tilted_loss_25)
-lin_beta_custom_75 <- fit_lin(y=prostate_train$lcavol,
-                    x=prostate_train$lpsa,
-                    loss=L1_tilted_loss_75)
-
-lin_pred_custom_25 <- predict_lin(x=x_grid, beta=lin_beta_custom_25$par)
-
-lin_pred_custom_75 <- predict_lin(x=x_grid, beta=lin_beta_custom_75$par)
-
-## plot data
-plot_psa_data()
-
-## plot predictions from L2 loss
-lines(x=x_grid, y=lin_pred, col='darkgreen', lwd=2)
-
-## plot predictions from tilted L1 loss, tau=0.25
-lines(x=x_grid, y=lin_pred_custom_25, col='pink', lwd=2, lty=2)
-
-## plot predictions from tilted L1 loss, tau=0.75
-lines(x=x_grid, y=lin_pred_custom_75, col='blue', lwd=2, lty=2)
-```
-
-![](Homework-2_files/figure-gfm/unnamed-chunk-4-5.png)<!-- --> \###
-Write functions to fit and predict from a simple nonlinear model with
-three parameters defined by ‘beta\[1\] + beta\[2\]*exp(-beta\[3\]*x)’.
-Hint: make copies of ‘fit_lin’ and ‘predict_lin’ and modify them to fit
-the nonlinear model. Use c(-1.0, 0.0, -0.3) as ‘beta_init’.
-
-### Create a figure that shows lpsa (x-axis) versus lcavol (y-axis). Add and label (using the ‘legend’ function) the nonlinear model predictors associated with L2 loss, L1 loss, and tilted absolute value loss for tau = 0.25 and 0.75.
+![](Homework-2_files/figure-gfm/plot-nonlin-1.png)<!-- -->
