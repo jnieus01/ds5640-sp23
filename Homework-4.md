@@ -1,15 +1,7 @@
----
-title: "Homework 4"
-author: "Jordan Nieusma"
-date: "2023-02-27"
-output: github_document
-editor_options: 
-  chunk_output_type: inline
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+Homework 4
+================
+Jordan Nieusma
+2023-02-27
 
 ## Goal: Understand and implement various ways to approximate test error.
 
@@ -17,25 +9,20 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Load MASS, manipulate, and tidyr packages.
 
-```{r include=FALSE}
-library('MASS') ## for 'mcycle'
-library('manipulate')
-library(tidyr)
-library(caret)
-```
-
 Get data.
 
-```{r}
+``` r
 y <- mcycle$accel
 x <- matrix(mcycle$times, length(mcycle$times), 1)
 
 plot(x, y, xlab="Time (ms)", ylab="Acceleration (g)")
 ```
 
+![](Homework-4_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
 ## Task 1: Randomly split the mcycle data into training (75%) and validation (25%) subsets.
 
-```{r}
+``` r
 set.seed(123)
 
 # Sample from mcycle data
@@ -55,10 +42,9 @@ y_validation = validation$accel
 X_validation = matrix(validation$times, length(validation$times),1)
 ```
 
-
 ## Functions to implement tasks on split data
 
-```{r}
+``` r
 ## Epanechnikov kernel function
 ## x  - n x p matrix of training inputs
 ## x0 - 1 x p input where to make prediction
@@ -166,10 +152,11 @@ y_hat <- nadaraya_watson(y_train, X_train, X_train,
 matrix_image(attr(y_hat, 'k'))
 ```
 
+![](Homework-4_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 ## Task 2: Using the mcycle data, consider predicting the mean acceleration as a function of time. Use the Nadaraya-Watson method with the k-NN kernel function to create a series of prediction models by varying the tuning parameter over a sequence of values.
 
-```{r}
+``` r
 # Create an empty matrix to store results
 result_matrix <- matrix(nrow = 40, ncol = 4)
 
@@ -197,13 +184,13 @@ lines(result_matrix[,"bic"], col = "red", lwd=2)
 lines(result_matrix[,"train_err"], col = "green", lwd=2)
 lines(result_matrix[,"validation_err"], col = "purple", lwd=2)
 legend("bottomright", legend = c("AIC", "BIC", "Training Error", "Validation Error"), col = c("blue", "red", "green", "purple"), lty = 1)
-
 ```
 
+![](Homework-4_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ## Task 3: For each value of the tuning parameter, perform 5-fold cross-validation using the combined training and validation data. This results in 5 estimates of test error per tuning parameter value.
 
-```{r}
+``` r
 # Create CV folds (k=5)
 folds <- createFolds(x, k=5)
 
@@ -229,9 +216,28 @@ cverrs <- sapply(1:20, cross_val)
 print(cverrs) ## rows are k-folds (1:5), cols are kNN (1:20)
 ```
 
+    ##           [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]     [,8]
+    ## [1,] 1138.2141 888.2318 722.5614 799.5303 649.8704 681.9446 657.7670 658.9194
+    ## [2,]  937.3508 889.6937 871.4267 861.1105 866.8560 791.8358 695.3184 691.6852
+    ## [3,]  794.2910 505.3590 490.1872 461.9066 495.6457 436.4118 435.6086 459.9587
+    ## [4,]  684.0625 466.4974 419.8662 456.7149 496.4319 481.6371 490.7818 504.8046
+    ## [5,] 1512.7653 959.8021 886.0814 739.3930 734.1818 694.6286 673.6069 708.4096
+    ##          [,9]    [,10]    [,11]    [,12]    [,13]    [,14]    [,15]    [,16]
+    ## [1,] 654.6853 631.5062 622.9041 630.7572 630.6460 631.3832 639.2257 699.2661
+    ## [2,] 679.8480 687.7822 700.3131 678.2919 663.3247 718.2630 740.6181 723.0848
+    ## [3,] 485.5181 469.3799 446.6936 429.2623 490.9910 501.0207 489.4965 458.5650
+    ## [4,] 578.4215 576.2346 619.8366 623.2942 599.2927 600.2025 594.9408 628.8514
+    ## [5,] 640.7495 605.1492 607.5933 636.5799 631.7107 588.9474 605.6599 614.7549
+    ##         [,17]    [,18]    [,19]    [,20]
+    ## [1,] 720.7292 778.0461 801.0436 787.1025
+    ## [2,] 724.6744 742.5541 743.9979 726.5396
+    ## [3,] 456.2420 426.9547 444.2641 471.2826
+    ## [4,] 693.9398 690.3973 721.6949 770.1655
+    ## [5,] 631.5519 662.6260 713.1138 669.5496
+
 ## Task 4: Plot the CV-estimated test error (average of the five estimates from each fold) as a function of the tuning parameter. Add vertical line segments to the figure (using the segments function in R) that represent one “standard error” of the CV-estimated test error (standard deviation of the five estimates from each fold).
 
-```{r}
+``` r
 # Get CV-estimated test error and standard deviation
 cverrs_mean <- apply(cverrs, 2, mean)
 cverrs_sd <- apply(cverrs, 2, sd)
@@ -248,6 +254,16 @@ points(x=best_idx, y=cverrs_mean[best_idx], pch=20)
 abline(h=cverrs_mean[best_idx] + cverrs_sd[best_idx], lty=3)
 ```
 
+![](Homework-4_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
 ## Task 6: Interpret the resulting figure and select a suitable value for the tuning parameter.
 
-The k value should be selected so that each train/test split is “representative” of the overall sample. In general, increasing k results in increasing variance and decreasing bias. We accomplish this by selecting the largest k value that is within one standard error of the minimum error. In this case, the minimum error is at k=6, with the dotted line representing the highest point in the standard error. Since k=15 is the largest k value where its standard error falls below the highest standard error of the k=6, thus we would select k=15 for the tuning parameter.
+The k value should be selected so that each train/test split is
+“representative” of the overall sample. In general, increasing k results
+in increasing variance and decreasing bias. We accomplish this by
+selecting the largest k value that is within one standard error of the
+minimum error. In this case, the minimum error is at k=6, with the
+dotted line representing the highest point in the standard error. Since
+k=15 is the largest k value where its standard error falls below the
+highest standard error of the k=6, thus we would select k=15 for the
+tuning parameter.
