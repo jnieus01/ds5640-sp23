@@ -1,0 +1,87 @@
+---
+title: "HW-6"
+author: "Jordan Nieusma"
+date: "2023-04-06"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Set up Tensorflow and Keras
+
+```{r}
+# install tensorflow
+install.packages("tensorflow")
+
+# reticulate
+library(reticulate)
+# supply absolute path to python executable
+path_to_python <- "/Users/jordannieusma/opt/anaconda3/bin/python3"
+virtualenv_create("r-reticulate", python = path_to_python)
+
+## Error message: 
+## Error in install_tensorflow_mac_arm64(method = method, conda = conda, :
+##Tensorflow on Arm Macs only supported in Conda Python. 
+##Install Miniconda with `reticulate::install_miniconda()`
+#reticulate::install_miniconda() # comment out after completion
+
+##* Miniconda has been successfully installed at "~/Library/r-miniconda-arm64".
+##[1] "/Users/jordannieusma/Library/r-miniconda-arm64"
+
+# load tensorflow
+library(tensorflow)
+install_tensorflow(method="conda", envname = "r-reticulate")
+# install keras
+install.packages("keras")
+library(keras)
+install_keras(method="conda", envname = "r-reticulate")
+
+# confirm if installation was successful
+#library(tensorflow)
+#tf$constant("Hello Tensorflow!")
+```
+```{r}
+# Sys.setenv(RETICULATE_PYTHON="/Users/jordannieusma/Library/r-miniconda-arm64/envs/r-reticulate/bin/python")
+# install_tensorflow(method="conda", envname = "r-reticulate")
+# library(tensorflow)
+# install_keras(method="conda", envname = "r-reticulate")
+# library(keras)
+
+```
+```{r}
+# test if tensorflow is working
+tf$constant("Hello Tensorflow!")
+```
+
+## Load additional packages
+
+```{r load-other-packages}
+library(tidyverse)
+library(ggplot2)
+```
+
+## Read-in
+
+```{r read-data}
+train <- read.delim("zip.train", header=FALSE, sep="")
+y_train <- train$V1
+x_train <- select(train, -V1)
+test <- read.delim("zip.test", header=FALSE, sep="")
+y_test <- test$V1
+x_train <- select(test, -V1)
+```
+
+
+
+## Objective
+
+Use the Keras library to create a convolutional neural network similar to (or more sophisticated than) "Net-5" described in Elements of Statistical Learning, section 11.7. Fit the CNN to the zipcode data from the authors website and create a figure similar to that from the slides.
+
+```{r}
+model <- keras_model_sequential()
+```
+
