@@ -1,65 +1,9 @@
----
-title: "HW-6"
-author: "Jordan Nieusma"
-date: "2023-04-06"
-output: github_document
-editor_options: 
-  chunk_output_type: inline
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+HW-6
+================
+Jordan Nieusma
+2023-04-06
 
 ## Set up environment
-
-```{r eval=FALSE, include=FALSE}
-# # install tensorflow
-# install.packages("tensorflow")
-# 
-# # reticulate
-# library(reticulate)
-# # supply absolute path to python executable
-# path_to_python <- "/Users/jordannieusma/opt/anaconda3/bin/python3"
-# virtualenv_create("r-reticulate", python = path_to_python)
-# 
-# ## Error message: 
-# ## Error in install_tensorflow_mac_arm64(method = method, conda = conda, :
-# ##Tensorflow on Arm Macs only supported in Conda Python. 
-# ##Install Miniconda with `reticulate::install_miniconda()`
-# #reticulate::install_miniconda() # comment out after completion
-# 
-# ##* Miniconda has been successfully installed at "~/Library/r-miniconda-arm64".
-# ##[1] "/Users/jordannieusma/Library/r-miniconda-arm64"
-# 
-# # load tensorflow
-# library(tensorflow)
-# install_tensorflow(method="conda", envname = "r-reticulate")
-# # install keras
-# install.packages("keras")
-# library(keras)
-# install_keras(method="conda", envname = "r-reticulate")
-# 
-# # confirm if installation was successful
-# library(tensorflow)
-# tf$constant("Hello Tensorflow!")
-```
-```{r include=FALSE}
-# Sys.setenv(RETICULATE_PYTHON="/Users/jordannieusma/Library/r-miniconda-arm64/envs/r-reticulate/bin/python")
-# install_tensorflow(method="conda", envname = "r-reticulate")
-library(tensorflow)
-# install_keras(method="conda", envname = "r-reticulate")
-library(keras)
-
-```
-```{r eval=FALSE, include=FALSE}
-# # test if tensorflow is working
-# tf$constant("Hello Tensorflow!")
-```
-```{r include=FALSE}
-library(tidyverse)
-library(ggplot2)
-```
 
 Packages used: tensorflow, keras, tidyverse, ggplot2
 
@@ -67,9 +11,9 @@ Packages used: tensorflow, keras, tidyverse, ggplot2
 
 Construct a simple neural network
 
-## Task 1: Step through the "Image Classification" tutorial on the RStudio Keras website. (https://tensorflow.rstudio.com/tutorials/beginners/basic-ml/tutorial_basic_classification/)
+## Task 1: Step through the “Image Classification” tutorial on the RStudio Keras website. (<https://tensorflow.rstudio.com/tutorials/beginners/basic-ml/tutorial_basic_classification/>)
 
-```{r echo=TRUE}
+``` r
 # prepare the data
 fashion_mnist <- dataset_fashion_mnist()
 
@@ -89,11 +33,35 @@ class_names = c('T-shirt/top',
                 'Ankle boot')
 # explore the data
 dim(train_images)
-dim(train_labels)
-train_labels[1:20]
-dim(test_images)
-dim(test_labels)
+```
 
+    ## [1] 60000    28    28
+
+``` r
+dim(train_labels)
+```
+
+    ## [1] 60000
+
+``` r
+train_labels[1:20]
+```
+
+    ##  [1] 9 0 0 3 0 2 7 2 5 5 0 9 5 5 7 9 1 0 6 4
+
+``` r
+dim(test_images)
+```
+
+    ## [1] 10000    28    28
+
+``` r
+dim(test_labels)
+```
+
+    ## [1] 10000
+
+``` r
 # pre-process the data
 image_1 <- as.data.frame(train_images[1, , ])
 colnames(image_1) <- seq_len(ncol(image_1))
@@ -111,7 +79,11 @@ ggplot(image_1, aes(x = x, y = y, fill = value)) +
   theme(aspect.ratio = 1) +
   xlab("") +
   ylab("")
+```
 
+![](Homework-6_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+``` r
 # scale train/test values
 train_images <- train_images / 255
 test_images <- test_images / 255
@@ -125,7 +97,11 @@ for (i in 1:25) {
   image(1:28, 1:28, img, col = gray((0:255)/255), xaxt = 'n', yaxt = 'n',
         main = paste(class_names[train_labels[i] + 1]))
 }
+```
 
+![](Homework-6_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+
+``` r
 # build the model
 tutorial_model <- keras_model_sequential()
 tutorial_model %>%
@@ -148,14 +124,38 @@ tutorial_score <- tutorial_model %>% evaluate(test_images, test_labels, verbose 
 
 # print test loss and accuracy
 cat('Test loss:', tutorial_score["loss"], "\n")
-cat('Test accuracy:', tutorial_score["accuracy"], "\n")
+```
 
+    ## Test loss: 0.3514509
+
+``` r
+cat('Test accuracy:', tutorial_score["accuracy"], "\n")
+```
+
+    ## Test accuracy: 0.8712
+
+``` r
 # predict
 tutorial_predictions <- tutorial_model %>% predict(test_images)
 tutorial_predictions[1, ]
-which.max(tutorial_predictions[1, ])
-test_labels[1]
+```
 
+    ##  [1] 1.574010e-05 6.347437e-10 4.512489e-08 3.737256e-09 6.805706e-08
+    ##  [6] 3.044010e-02 1.920468e-06 3.160880e-02 2.546595e-05 9.379078e-01
+
+``` r
+which.max(tutorial_predictions[1, ])
+```
+
+    ## [1] 10
+
+``` r
+test_labels[1]
+```
+
+    ## [1] 9
+
+``` r
 # plot some images with their predictions
 par(mfcol=c(5,5))
 par(mar=c(0, 0, 1.5, 0), xaxs='i', yaxs='i')
@@ -175,16 +175,37 @@ for (i in 1:25) {
                       class_names[true_label + 1], ")"),
         col.main = color)
 }
+```
 
+![](Homework-6_files/figure-gfm/unnamed-chunk-5-3.png)<!-- -->
+
+``` r
 # Predict for a single image
 img <- test_images[1, , , drop = FALSE]
 dim(img)
+```
+
+    ## [1]  1 28 28
+
+``` r
 predictions <- tutorial_model %>% predict(img)
 predictions
+```
+
+    ##              [,1]         [,2]         [,3]         [,4]         [,5]
+    ## [1,] 1.574013e-05 6.347446e-10 4.512502e-08 3.737257e-09 6.805733e-08
+    ##            [,6]         [,7]       [,8]         [,9]     [,10]
+    ## [1,] 0.03044013 1.920471e-06 0.03160877 2.546601e-05 0.9379079
+
+``` r
 # subtract 1 as labels are 0-based
 prediction <- predictions[1, ] - 1
 which.max(prediction)
+```
 
+    ## [1] 10
+
+``` r
 test_images_unscaled <- test_images*255
 
 img_plot <- as.data.frame(test_images_unscaled[1, , ])
@@ -204,9 +225,11 @@ ggplot(img_plot, aes(x = x, y = y, fill = value)) +
   labs(title=paste("Prediction: ", class_names[which.max(prediction)]))
 ```
 
-## Task 2: Use the Keras library to create a convolutional neural network similar to (or more sophisticated than) "Net-5" described in Elements of Statistical Learning, section 11.7. Refer to ConvNet tutorial on RStudio Keras (https://tensorflow.rstudio.com/examples/cifar10_cnn). Fit the CNN to the zipcode data from the authors website and create a figure that shows test error as a function of training epochs.
+![](Homework-6_files/figure-gfm/unnamed-chunk-5-4.png)<!-- -->
 
-```{r}
+## Task 2: Use the Keras library to create a convolutional neural network similar to (or more sophisticated than) “Net-5” described in Elements of Statistical Learning, section 11.7. Refer to ConvNet tutorial on RStudio Keras (<https://tensorflow.rstudio.com/examples/cifar10_cnn>). Fit the CNN to the zipcode data from the authors website and create a figure that shows test error as a function of training epochs.
+
+``` r
 # read in zip data
 train_zip <- read.delim("zip.train", header=FALSE, sep="")
 test_zip <- read.delim("zip.test", header=FALSE, sep="")
@@ -238,8 +261,9 @@ ggplot(image_1, aes(x = x, y = y, fill = value)) +
   ylab("")
 ```
 
+![](Homework-6_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
-```{r}
+``` r
 # build model
 model <- keras_model_sequential() %>%
   layer_conv_2d(filters=2, kernel_size=c(3,3), strides = c(1L,1L), input_shape=c(16,16,1), activation='relu') %>%
@@ -263,12 +287,16 @@ model %>% fit(train_images, train_labels)
 # evaluate model
 eval <- model %>% evaluate(test_images, test_labels)
 print(eval)
+```
 
+    ##      loss  accuracy 
+    ## 0.3913732 0.9113104
+
+``` r
 mplot <- model %>% fit(train_images, train_labels, validation_data=list(test_images, test_labels), epochs=30)
 
 # plot results
 plot(mplot)
 ```
 
-
-
+![](Homework-6_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
